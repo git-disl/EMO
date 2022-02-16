@@ -119,12 +119,14 @@ class opts(object):
                              help='path to the input video')
     self.parser.add_argument('--output-format', type=str, default='video', help='video or text')
     self.parser.add_argument('--output-root', type=str, default='../demos', help='expected output root path')
-
+    self.parser.add_argument('--custom_video', default=False, help='is custom video provided')
     # mot
     self.parser.add_argument('--data_cfg', type=str,
                              default='../src/lib/cfg/data.json',
                              help='load data from cfg')
-    self.parser.add_argument('--data_dir', type=str, default='/home/zyf/dataset')
+    self.parser.add_argument('--data_dir', type=str, default='/content/drive/MyDrive/MOT/')
+    self.parser.add_argument('--seq_name', type=str, default='')
+    self.parser.add_argument('--data_path', type=str, default='/')
 
     # loss
     self.parser.add_argument('--mse_loss', action='store_true',

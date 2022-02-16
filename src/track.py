@@ -260,12 +260,15 @@ if __name__ == '__main__':
                       MOT20-08
                       '''
         data_root = os.path.join(opt.data_dir, 'MOT20/images/test')
+    if opt.custom_video:
+        seqs_str = opt.seq_name
+        data_root = os.path.join(opt.data_dir, opt.data_path)
     seqs = [seq.strip() for seq in seqs_str.split()]
 
     main(opt,
          data_root=data_root,
          seqs=seqs,
-         exp_name='MOT17_test_public_dla34',
+         exp_name='MOT15_test_samplevideo_'+seqs_str,
          show_image=False,
          save_images=False,
-         save_videos=False)
+         save_videos=True)
