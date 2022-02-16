@@ -74,6 +74,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     timer = Timer()
     results = []
     frame_id = 0
+    prev_online_targets = []
     #for path, img, img0 in dataloader:
     for i, (path, img, img0) in enumerate(dataloader):
         #if i % 8 != 0:
@@ -87,7 +88,11 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
-        online_targets = tracker.update(blob, img0)
+        if frame_id % 2 == 0:
+          online_targets = tracker.update(blob, img0)
+          prev_online_targets = online_targets
+        else:
+          online_targets = prev_online_targets
         online_tlwhs = []
         online_ids = []
         #online_scores = []
