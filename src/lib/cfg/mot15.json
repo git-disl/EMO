@@ -1,5 +1,5 @@
 {
-    "root":"/home/zyf/dataset",
+    "root":"/content/drive/MyDrive/MOT/",
     "train":
     {
         "mot15":"./data/mot15.train"
