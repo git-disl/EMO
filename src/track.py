@@ -75,6 +75,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     results = []
     frame_id = 0
     prev_online_targets = []
+    skip_rate = int(opt.skip_frames) + 1
     #for path, img, img0 in dataloader:
     for i, (path, img, img0) in enumerate(dataloader):
         #if i % 8 != 0:
@@ -88,7 +89,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
-        if frame_id % 2 == 0:
+        if frame_id % skip_rate == 0:
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
         else:
@@ -248,8 +249,7 @@ if __name__ == '__main__':
                       TUD-Stadtmitte
                       ADL-Rundle-6
                       ADL-Rundle-8
-                      ETH-Pedcross2
-                      TUD-Stadtmitte'''
+                      ETH-Pedcross2'''
         data_root = os.path.join(opt.data_dir, 'MOT15/images/train')
     if opt.val_mot20:
         seqs_str = '''MOT20-01
