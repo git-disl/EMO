@@ -11,6 +11,7 @@ import argparse
 import motmetrics as mm
 import numpy as np
 import torch
+from PIL import Image
 
 from tracker.multitracker import JDETracker
 from tracking_utils import visualization as vis
@@ -75,37 +76,72 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     results = []
     frame_id = 0
     prev_online_targets = []
-    skip_rate = int(opt.skip_frames) + 1
+    prev_img = None
+    eigen_threshold = int(opt.eigen_threshold)
+    num_detect = 0
+    num_skipped = 0
+    prev_area = 0
+    total_areas = []
+    largest_areas = []
     #for path, img, img0 in dataloader:
     for i, (path, img, img0) in enumerate(dataloader):
         #if i % 8 != 0:
-            #continue
+            #continue   
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
+        
+
 
         # run tracking
         timer.tic()
+
+        if i > 0 :
+          eig = compute_eigen_values_consecutive(prev_img, img0)
+        else:
+          eig = 1000
+        print('eig_', i ,": ", eig)
+
         if use_cuda:
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
-        if frame_id % skip_rate == 0:
+
+        if eig >= eigen_threshold:
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
+          prev_img = img0
+          num_detect+=1
+          print('detect at ', i, ' prev_area: ', prev_area)
         else:
+          #eig = compute_eigen_values_consecutive(prev_img, img0)
           online_targets = prev_online_targets
+          num_skipped+=1
         online_tlwhs = []
         online_ids = []
         #online_scores = []
+        tot_area = 0
+        max_area = -1
         for t in online_targets:
             tlwh = t.tlwh
             tid = t.track_id
             vertical = tlwh[2] / tlwh[3] > 1.6
+            
             if tlwh[2] * tlwh[3] > opt.min_box_area and not vertical:
                 online_tlwhs.append(tlwh)
                 online_ids.append(tid)
+                curr_area = tlwh[2] * tlwh[3]
+                tot_area += curr_area
                 #online_scores.append(t.score)
+                if curr_area > max_area:
+                    max_area = curr_area
+
+        prev_area = tot_area
+        largest_areas.append(max_area)
+        total_areas.append(tot_area)
         timer.toc()
+        print('largest_areas:', largest_areas)
+        print('total_areas:', total_areas)
+        
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
         #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
@@ -118,10 +154,26 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             cv2.imwrite(os.path.join(save_dir, '{:05d}.jpg'.format(frame_id)), online_im)
         frame_id += 1
     # save results
+    print('num_detect:', num_detect, "num_skipped:", num_skipped)
     write_results(result_filename, results, data_type)
     #write_results_score(result_filename, results, data_type)
     return frame_id, timer.average_time, timer.calls
 
+def get_image_as_array(img):
+    image_1 = Image.fromarray(img)
+    imgGray = image_1.convert('L')
+    img_gray = np.array(imgGray)
+    img_part = img_gray
+    img_part = img_part.reshape(-1)
+    return img_part
+
+def compute_eigen_values_consecutive(image1, image2):
+    img1 = get_image_as_array(image1)
+    img2 = get_image_as_array(image2)
+    cova_1 = np.cov(img1, img2)
+    eig_1, eig_vec_1 =  np.linalg.eig(cova_1)
+    eig = np.sort(eig_1)
+    return eig[0]
 
 def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), exp_name='demo',
          save_images=False, save_videos=False, show_image=True):

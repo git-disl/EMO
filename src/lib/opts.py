@@ -120,7 +120,8 @@ class opts(object):
     self.parser.add_argument('--output-format', type=str, default='video', help='video or text')
     self.parser.add_argument('--output-root', type=str, default='../demos', help='expected output root path')
     self.parser.add_argument('--custom_video', default=False, help='is custom video provided')
-    self.parser.add_argument('--skip_frames', default=1, help='how frequently to skip frames during detection 0: no skiping 1: 1/2skipped 2: 2/3 skipped 3: 3/4 skipped')
+    self.parser.add_argument('--skip_frames', default=1, help='how frequently to skip frames during detection 0: no skiping 1: 1/2 skipped 2: 2/3 skipped 3: 3/4 skipped')
+    self.parser.add_argument('--eigen_threshold', default=10, help='threshold of similarity till which detection can be skipped')
     # mot
     self.parser.add_argument('--data_cfg', type=str,
                              default='../src/lib/cfg/data.json',
