@@ -25,7 +25,7 @@ This project aims to address these problems using optimizations that will enable
 a video to be performed faster and at the same time with minimal loss in performance metrics like MOTA
 and IDF1.
 
-When the incoming frame rate is greater than processing rate of the tracker, if the model skips performing detection on frames periodically and uses the detections from previous frames, the result of the tracking using FairMOT on a few videos from MOT-15 dataset can be seen below. It can be observed that the negative effects of skipping frames are more noticeable when the people in the scene as moving faster in between successive frames.
+When the incoming frame rate is greater than processing rate of the tracker, if the model skips performing detection on frames periodically and uses the detections from previous frames, the result of the tracking using FairMOT on a few videos from MOT-15[2] dataset can be seen below. It can be observed that the negative effects of skipping frames are more noticeable when the people in the scene as moving faster in between successive frames.
 
 |Video|No frames skipped | Every alternate frame (1/2) skipped | 2 of every 3 frames skipped|
 |-----|------------------|-------------------------------------|----------------------------|
@@ -52,7 +52,11 @@ The project is in progress. The code package will be released later.
 
 ## References
 [1] Zhang, Y., Wang, C., Wang, X., Zeng, W., & Liu, W. (2021). Fairmot: On the fairness of detection and re-identification in multiple object tracking. International Journal of Computer Vision, 129(11), 3069-3087
+[2] Leal-Taixé, L., Milan, A., Reid, I., Roth, S. & Schindler, K. MOTChallenge 2015: Towards a Benchmark for Multi-Target Tracking. arXiv:1504.01942 [cs], 2015., (arXiv: 1504.01942).
 
 ## Acknowledgement
 This project is developed based on the following repository
 https://github.com/ifzhang/FairMOT
+
+The dataset used is from 
+https://motchallenge.net/data/MOT15/
