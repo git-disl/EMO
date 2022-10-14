@@ -17,7 +17,7 @@ frames.
 
 For critical services that run on edge devices, latency is an important performance measure, and the 
 systems are expected to achieve near real-time performance in online object tracking. Zhang et al.[6]
-, report that FairMOT[1] performs tracking at the rate of 25.9 FPS (Frames per second). However, as deep 
+, report that FairMOT performs tracking at the rate of 25.9 FPS (Frames per second). However, as deep 
 neural networks are computationally intensive, the accuracy and speed of online detection and tracking 
 may degrade on edge devices which could have lesser computational resources. In cases where the 
 number of frames that could be processed on the edge device is less than the number of frames in the 
@@ -30,22 +30,29 @@ When the incoming frame rate is greater than processing rate of the tracker, if 
 
 |Video|No frames skipped | Every alternate frame (1/2) skipped | 2 of every 3 frames skipped|
 |-----|------------------|-------------------------------------|----------------------------|
-|TUD-Stadtmitte|    |   |   |
-|KITTI-17|    |   |   |
+|TUD-Stadtmitte| https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4   | https://user-images.githubusercontent.com/82513364/195884805-c675497c-be97-4d44-9b4b-1d0e4d1e087c.mp4 | https://user-images.githubusercontent.com/82513364/195884827-a5f55a6a-807c-4e22-871c-37c9fbebf745.mp4|
+|KITTI-17| https://user-images.githubusercontent.com/82513364/195884865-72b13f60-79f4-4c35-b8ea-62020e06558c.mp4 | https://user-images.githubusercontent.com/82513364/195884883-71402b2a-b5ce-43fd-8ce3-b97a70d58f75.mp4 | https://user-images.githubusercontent.com/82513364/195885097-33ea48fe-915f-418b-930a-b9da1e8a5f3d.mp4|
 |PETS09-S2L1|    |   |   |
 
 Rather than dropping frames periodically, similarity between successive frames can be computed and used to determine a particular frame can be dropped without much impact or if it should not be skipped. Below are the results when skipping detection on frames that are very similar to the previously detected frames.
 
 |Video|No frames skipped | Skipping detection based on frame similarity |
 |-----|------------------|-------------------------------------|
-|TUD-Stadtmitte|    |   |
-|KITTI-17|    |   |
+|TUD-Stadtmitte|  https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4  |   |
+|KITTI-17|   https://user-images.githubusercontent.com/82513364/195884865-72b13f60-79f4-4c35-b8ea-62020e06558c.mp4 |   |
 |PETS09-S2L1|    |   |
 
 Combining both the previous approaches to avoid accumulation of errors by skipping multiple consecutive frames by ensuring that detection is performed atleast on one in every given number of frames, the below results are observed
 
 |Video|No frames skipped | Skipping detection based on frame similarity & enforcing detection on atlest one in every 4 frames |
 |-----|------------------|-------------------------------------|
-|TUD-Stadtmitte|    |   |
-|KITTI-17|    |   |
+|TUD-Stadtmitte|  https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4  |   |
+|KITTI-17|  https://user-images.githubusercontent.com/82513364/195884865-72b13f60-79f4-4c35-b8ea-62020e06558c.mp4  |   |
 |PETS09-S2L1|    |   |
+
+## References
+[1] Zhang, Y., Wang, C., Wang, X., Zeng, W., & Liu, W. (2021). Fairmot: On the fairness of detection and reidentification in multiple object tracking. International Journal of Computer Vision, 129(11), 3069-3087
+
+## Acknowledgement
+This project is developed based on the following repository
+https://github.com/ifzhang/FairMOT
