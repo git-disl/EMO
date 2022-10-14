@@ -16,8 +16,7 @@ deep neural networks especially Convolutional Neural Networks to perform object 
 frames.
 
 For critical services that run on edge devices, latency is an important performance measure, and the 
-systems are expected to achieve near real-time performance in online object tracking. Zhang et al.[1]
-, report that FairMOT performs tracking at the rate of 25.9 FPS (Frames per second). However, as deep 
+systems are expected to achieve near real-time performance in online object tracking. Zhang et al.[1] report that FairMOT performs tracking at the rate of 25.9 FPS (Frames per second). However, as deep 
 neural networks are computationally intensive, the accuracy and speed of online detection and tracking 
 may degrade on edge devices which could have lesser computational resources. In cases where the 
 number of frames that could be processed on the edge device is less than the number of frames in the 
@@ -32,27 +31,27 @@ When the incoming frame rate is greater than processing rate of the tracker, if 
 |-----|------------------|-------------------------------------|----------------------------|
 |TUD-Stadtmitte|  <video autoplay src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4"> | <video  autoplay  src="https://user-images.githubusercontent.com/82513364/195884805-c675497c-be97-4d44-9b4b-1d0e4d1e087c.mp4">|  <video autoplay src="https://user-images.githubusercontent.com/82513364/195884827-a5f55a6a-807c-4e22-871c-37c9fbebf745.mp4">|
 |KITTI-17|  <video src="https://user-images.githubusercontent.com/82513364/195884865-72b13f60-79f4-4c35-b8ea-62020e06558c.mp4"> |  <video src="https://user-images.githubusercontent.com/82513364/195884883-71402b2a-b5ce-43fd-8ce3-b97a70d58f75.mp4"> |  <video src="https://user-images.githubusercontent.com/82513364/195885097-33ea48fe-915f-418b-930a-b9da1e8a5f3d.mp4">|
-|PETS09-S2L1|  <video src="https://user-images.githubusercontent.com/82513364/195930333-3e69d986-9eac-499b-ac85-dc6fb58677b5.mp4"> |   |   |
+|PETS09-S2L1|  <video src="https://user-images.githubusercontent.com/82513364/195932559-951a08ee-d1b8-415f-a6c0-6192da3e4228.mp4"> |   |   |
 
 Rather than dropping frames periodically, similarity between successive frames can be computed and used to determine a particular frame can be dropped without much impact or if it should not be skipped. Below are the results when skipping detection on frames that are very similar to the previously detected frames.
 
 |Video|No frames skipped | Skipping detection based on frame similarity |
 |-----|------------------|-------------------------------------|
-|TUD-Stadtmitte|   <video src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4">  | <video src="https://user-images.githubusercontent.com/82513364/195930889-57df9cd9-4171-4f6f-82f4-23cfa3a4e951.mp4">|
-|PETS09-S2L1| <video src="https://user-images.githubusercontent.com/82513364/195930333-3e69d986-9eac-499b-ac85-dc6fb58677b5.mp4"> | <video src="https://user-images.githubusercontent.com/82513364/195930489-42125007-c9b5-464b-8aae-0e473c8bfc0a.mp4">  |
+|TUD-Stadtmitte|   <video src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4">  | <video src="https://user-images.githubusercontent.com/82513364/195933899-2134e4df-8fdf-48e1-9416-e90444efc5d9.mp4">|
+|PETS09-S2L1| <video src="https://user-images.githubusercontent.com/82513364/195932559-951a08ee-d1b8-415f-a6c0-6192da3e4228.mp4"> | <video src="https://user-images.githubusercontent.com/82513364/195932831-185bb5e1-80ae-4d69-b788-56417b1ffcfd.mp4">  |
 
 Combining both the previous approaches to avoid accumulation of errors by skipping multiple consecutive frames by ensuring that detection is performed atleast on one in every given number of frames, the below results are observed
 
 |Video|No frames skipped | Skipping detection based on frame similarity & enforcing detection on atleast one in every 4 frames |
 |-----|------------------|-------------------------------------|
-|TUD-Stadtmitte|   <video src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4">  | <video src="https://user-images.githubusercontent.com/82513364/195930817-71f31ba8-69e1-4b38-a194-214579b426a3.mp4">  |
-|PETS09-S2L1| <video src="https://user-images.githubusercontent.com/82513364/195930333-3e69d986-9eac-499b-ac85-dc6fb58677b5.mp4">   | <video src="https://user-images.githubusercontent.com/82513364/195930751-1db5155c-6df6-42ce-b70d-260e7c9914c2.mp4">  |
+|TUD-Stadtmitte|   <video src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4">  | <video src="https://user-images.githubusercontent.com/82513364/195933869-d82fa65e-f896-47de-88c0-da04447eb341.mp4">  |
+|PETS09-S2L1| <video src="https://user-images.githubusercontent.com/82513364/195932559-951a08ee-d1b8-415f-a6c0-6192da3e4228.mp4">   | <video src="https://user-images.githubusercontent.com/82513364/195932761-88a3993a-a572-4aa1-82fc-b45a09db98ae.mp4">  |
 
 ## Code Package
 The project is in progress. The code package will be released later.
 
 ## References
-[1] Zhang, Y., Wang, C., Wang, X., Zeng, W., & Liu, W. (2021). Fairmot: On the fairness of detection and reidentification in multiple object tracking. International Journal of Computer Vision, 129(11), 3069-3087
+[1] Zhang, Y., Wang, C., Wang, X., Zeng, W., & Liu, W. (2021). Fairmot: On the fairness of detection and re-identification in multiple object tracking. International Journal of Computer Vision, 129(11), 3069-3087
 
 ## Acknowledgement
 This project is developed based on the following repository
