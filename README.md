@@ -31,7 +31,6 @@ When the incoming frame rate is greater than processing rate of the tracker, if 
 |-----|------------------|-------------------------------------|----------------------------|
 |TUD-Stadtmitte|  <video autoplay src="https://user-images.githubusercontent.com/82513364/195884778-e4bcb9a9-628e-4faf-a411-e7ee73e28834.mp4"> | <video  autoplay  src="https://user-images.githubusercontent.com/82513364/195884805-c675497c-be97-4d44-9b4b-1d0e4d1e087c.mp4">|  <video autoplay src="https://user-images.githubusercontent.com/82513364/195884827-a5f55a6a-807c-4e22-871c-37c9fbebf745.mp4">|
 |KITTI-17|  <video src="https://user-images.githubusercontent.com/82513364/195884865-72b13f60-79f4-4c35-b8ea-62020e06558c.mp4"> |  <video src="https://user-images.githubusercontent.com/82513364/195884883-71402b2a-b5ce-43fd-8ce3-b97a70d58f75.mp4"> |  <video src="https://user-images.githubusercontent.com/82513364/195885097-33ea48fe-915f-418b-930a-b9da1e8a5f3d.mp4">|
-|PETS09-S2L1|  <video src="https://user-images.githubusercontent.com/82513364/195932559-951a08ee-d1b8-415f-a6c0-6192da3e4228.mp4"> |   |   |
 
 Rather than dropping frames periodically, similarity between successive frames can be computed and used to determine a particular frame can be dropped without much impact or if it should not be skipped. Below are the results when skipping detection on frames that are very similar to the previously detected frames.
 
@@ -59,5 +58,5 @@ The project is in progress. The code package will be released later.
 This project is developed based on the following repository
 https://github.com/ifzhang/FairMOT
 
-The dataset used is from 
+The videos used for the analysis are from 
 https://motchallenge.net/data/MOT15/
