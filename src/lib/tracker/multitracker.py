@@ -56,6 +56,19 @@ class STrack(BaseTrack):
         if self.state != TrackState.Tracked:
             mean_state[7] = 0
         self.mean, self.covariance = self.kalman_filter.predict(mean_state, self.covariance)
+    
+    def predict_tlwh_without_updating_state(self):
+        mean_state = self.mean.copy()
+        if self.state != TrackState.Tracked:
+            mean_state[7] = 0
+        new_mean, new_covariance = self.kalman_filter.predict(mean_state, self.covariance)
+        new_tlwh = new_mean[:4].copy()
+        new_tlwh[2] *= new_tlwh[3]
+        new_tlwh[:2] -= new_tlwh[2:] / 2
+        new_tlwh[2:] += new_tlwh[:2]
+        new_tlbr = new_tlwh
+        return new_tlbr
+        #return new_mean, new_covariance
 
     @staticmethod
     def multi_predict(stracks):
@@ -166,8 +179,7 @@ class STrack(BaseTrack):
 
     def __repr__(self):
         return 'OT_{}_({}-{})'.format(self.track_id, self.start_frame, self.end_frame)
-
-
+    
 class JDETracker(object):
     def __init__(self, opt, frame_rate=30):
         self.opt = opt

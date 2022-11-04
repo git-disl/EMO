@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from tracker.multitracker import JDETracker
+from tracker.multitracker import JDETracker, STrack
 from tracking_utils import visualization as vis
 from tracking_utils.log import logger
 from tracking_utils.timer import Timer
@@ -96,17 +96,26 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         timer.tic()
 
         if i > 0 :
-          eig = compute_eigen_values_consecutive(prev_img, img0)
+            prev_img_array = get_image_as_array(prev_img)
+            curr_img_array = get_image_as_array(img0)
+            total_eig = 0
+            for prev_track in prev_online_targets:
+                #filter targets like below
+                previous_position = prev_track.tlbr
+                predicted_curr_position = prev_track.predict_tlwh_without_updating_state()
+                prev_detected_box = crop_detected_portion_of_image(prev_img_array, previous_position)
+                curr_predicted_box = crop_detected_portion_of_image(curr_img_array, predicted_curr_position)
+                total_eig += compute_eigen_value_similarity(prev_detected_box, curr_predicted_box)
         else:
-          eig = 1000
-        print('eig_', i ,": ", eig)
+            total_eig = 1000
+        print('eig_', i ,": ", total_eig)
 
         if use_cuda:
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
 
-        if eig >= eigen_threshold:
+        if total_eig >= eigen_threshold:
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
           prev_img = img0
@@ -114,6 +123,7 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
           print('detect at ', i, ' prev_area: ', prev_area)
         else:
           #eig = compute_eigen_values_consecutive(prev_img, img0)
+          STrack.multi_predict(prev_online_targets)
           online_targets = prev_online_targets
           num_skipped+=1
         online_tlwhs = []
@@ -174,6 +184,16 @@ def compute_eigen_values_consecutive(image1, image2):
     eig_1, eig_vec_1 =  np.linalg.eig(cova_1)
     eig = np.sort(eig_1)
     return eig[0]
+
+def compute_eigen_value_similarity(img1, img2):
+    cova_1 = np.cov(img1, img2)
+    eig_1, eig_vec_1 =  np.linalg.eig(cova_1)
+    eig = np.sort(eig_1)
+    return eig[0]
+
+def crop_detected_portion_of_image(image, tlbr):
+    #(min x, min y, max x, max y)
+    return image[tlbr[1]:tlbr[3], tlbr[0]:tlbr[2]]
 
 def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), exp_name='demo',
          save_images=False, save_videos=False, show_image=True):
