@@ -57,7 +57,7 @@ class STrack(BaseTrack):
             mean_state[7] = 0
         self.mean, self.covariance = self.kalman_filter.predict(mean_state, self.covariance)
     
-    def predict_tlwh_without_updating_state(self):
+    def predict_tlbr_without_updating_state(self):
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
             mean_state[7] = 0

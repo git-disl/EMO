@@ -96,18 +96,17 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         timer.tic()
 
         if i > 0 :
-            prev_img_array = get_image_as_array(prev_img)
-            curr_img_array = get_image_as_array(img0)
             total_eig = 0
             for prev_track in prev_online_targets:
                 #filter targets like below
-                previous_position = prev_track.tlbr
-                predicted_curr_position = prev_track.predict_tlwh_without_updating_state()
-                prev_detected_box = crop_detected_portion_of_image(prev_img_array, previous_position)
-                curr_predicted_box = crop_detected_portion_of_image(curr_img_array, predicted_curr_position)
+                previous_position_tlbr = prev_track.tlbr
+                predicted_curr_position_tlbr = prev_track.predict_tlbr_without_updating_state()
+                prev_detected_box, curr_predicted_box = get_crop_image_same_size(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
+                
                 total_eig += compute_eigen_value_similarity(prev_detected_box, curr_predicted_box)
+                #print('index', i, previous_position_tlbr, predicted_curr_position_tlbr)
         else:
-            total_eig = 1000
+            total_eig = 10000
         print('eig_', i ,": ", total_eig)
 
         if use_cuda:
@@ -149,8 +148,8 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         largest_areas.append(max_area)
         total_areas.append(tot_area)
         timer.toc()
-        print('largest_areas:', largest_areas)
-        print('total_areas:', total_areas)
+        #print('largest_areas:', largest_areas)
+        #print('total_areas:', total_areas)
         
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
@@ -186,14 +185,30 @@ def compute_eigen_values_consecutive(image1, image2):
     return eig[0]
 
 def compute_eigen_value_similarity(img1, img2):
+    img1 = img1.reshape(-1)
+    img2 = img2.reshape(-1)
     cova_1 = np.cov(img1, img2)
     eig_1, eig_vec_1 =  np.linalg.eig(cova_1)
     eig = np.sort(eig_1)
     return eig[0]
 
+def get_image_crop(img1, boundingbox1):
+    image_1 = Image.fromarray(img1)
+    imgGray_1 = image_1.convert('L')
+    img_crop1 = imgGray_1.crop(boundingbox1)
+    return img_crop1
+
+def get_crop_image_same_size(img1, boundingbox1, img2, boundingbox2):
+    img_crop1 = get_image_crop(img1, boundingbox1)
+    img_crop2 = get_image_crop(img2, boundingbox2)
+    img_crop2_resized = img_crop2.resize(img_crop1.size)
+    img_crop1 = np.array(img_crop1).reshape(-1)
+    img_crop2_resized = np.array(img_crop2_resized).reshape(-1)
+    return img_crop1, img_crop2_resized
+
 def crop_detected_portion_of_image(image, tlbr):
     #(min x, min y, max x, max y)
-    return image[tlbr[1]:tlbr[3], tlbr[0]:tlbr[2]]
+    return image[round(tlbr[1]):round(tlbr[3]), round(tlbr[0]):round(tlbr[2])]
 
 def main(opt, data_root='/data/MOT16/train', det_root=None, seqs=('MOT16-05',), exp_name='demo',
          save_images=False, save_videos=False, show_image=True):
