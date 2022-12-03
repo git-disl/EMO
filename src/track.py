@@ -78,9 +78,11 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     prev_online_targets = []
     prev_img = None
     eigen_threshold = int(opt.eigen_threshold)
+    detect_frame_interval = int(opt.detect_frame_interval)
     num_detect = 0
     num_skipped = 0
     prev_area = 0
+    num_consecutive_skips = 0
     total_areas = []
     largest_areas = []
     #for path, img, img0 in dataloader:
@@ -97,33 +99,40 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
 
         if i > 0 :
             total_eig = 0
+            num_boxes_counted = 0
             for prev_track in prev_online_targets:
                 #filter targets like below
                 previous_position_tlbr = prev_track.tlbr
                 predicted_curr_position_tlbr = prev_track.predict_tlbr_without_updating_state()
                 prev_detected_box, curr_predicted_box = get_crop_image_same_size(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
                 
-                total_eig += compute_eigen_value_similarity(prev_detected_box, curr_predicted_box)
-                #print('index', i, previous_position_tlbr, predicted_curr_position_tlbr)
+                prev_tlwh = prev_track.tlwh
+                vertical = prev_tlwh[2] / prev_tlwh[3] > 1.6
+                if prev_tlwh[2] * prev_tlwh[3] > opt.min_box_area and not vertical:
+                    total_eig += compute_eigen_value_similarity(prev_detected_box, curr_predicted_box)
+                    num_boxes_counted += 1
+                    #print('index', i, previous_position_tlbr, predicted_curr_position_tlbr)
+            print('eig_', i ,": ", total_eig, 'num_boxes_counted ', num_boxes_counted)
         else:
             total_eig = 10000
-        print('eig_', i ,": ", total_eig)
 
         if use_cuda:
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
 
-        if total_eig >= eigen_threshold:
+        if total_eig >= eigen_threshold or num_consecutive_skips >=  detect_frame_interval:
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
           prev_img = img0
           num_detect+=1
+          num_consecutive_skips = 0
           print('detect at ', i, ' prev_area: ', prev_area)
         else:
           #eig = compute_eigen_values_consecutive(prev_img, img0)
           STrack.multi_predict(prev_online_targets)
           online_targets = prev_online_targets
+          num_consecutive_skips += 1
           num_skipped+=1
         online_tlwhs = []
         online_ids = []

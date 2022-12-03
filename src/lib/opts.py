@@ -122,6 +122,7 @@ class opts(object):
     self.parser.add_argument('--custom_video', default=False, help='is custom video provided')
     self.parser.add_argument('--skip_frames', default=1, help='how frequently to skip frames during detection 0: no skiping 1: 1/2 skipped 2: 2/3 skipped 3: 3/4 skipped')
     self.parser.add_argument('--eigen_threshold', default=10, help='threshold of similarity till which detection can be skipped')
+    self.parser.add_argument('--detect_frame_interval', default=1, help='how frequently should detection not be skipped to handle new objects entering the scene')
     # mot
     self.parser.add_argument('--data_cfg', type=str,
                              default='../src/lib/cfg/data.json',
