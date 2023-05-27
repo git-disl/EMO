@@ -18,7 +18,9 @@ from tracking_utils import visualization as vis
 from tracking_utils.log import logger
 from tracking_utils.timer import Timer
 from tracking_utils.evaluation import Evaluator
-import datasets.dataset.jde as datasets
+import sys
+sys.path.append('/mnt/batch/tasks/shared/LS_root/mounts/clusters/emo-experiment/code/Users/sganesh68/efficient-object-tracking/src/lib/datasets')
+import dataset.jde as datasets
 
 from tracking_utils.utils import mkdir_if_missing
 from opts import opts
@@ -77,8 +79,10 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     frame_id = 0
     prev_online_targets = []
     prev_img = None
-    eigen_threshold = int(opt.eigen_threshold)
+    eigen_threshold = float(opt.eigen_threshold)
     detect_frame_interval = int(opt.detect_frame_interval)
+    if frame_rate < 15:
+        detect_frame_interval = int(detect_frame_interval / 2)
     num_detect = 0
     num_skipped = 0
     prev_area = 0
@@ -98,30 +102,37 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
         timer.tic()
 
         if i > 0 :
-            total_eig = 0
+            total_corr = 0
             num_boxes_counted = 0
             for prev_track in prev_online_targets:
                 #filter targets like below
                 previous_position_tlbr = prev_track.tlbr
                 predicted_curr_position_tlbr = prev_track.predict_tlbr_without_updating_state()
                 prev_detected_box, curr_predicted_box = get_crop_image_same_size(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
+                #prev_detected_box, curr_predicted_box = get_crop_image_same_size_flatten(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
                 
                 prev_tlwh = prev_track.tlwh
                 vertical = prev_tlwh[2] / prev_tlwh[3] > 1.6
-                if prev_tlwh[2] * prev_tlwh[3] > opt.min_box_area and not vertical:
-                    total_eig += compute_eigen_value_similarity(prev_detected_box, curr_predicted_box)
+                curr_area = prev_tlwh[2] * prev_tlwh[3]
+                if curr_area > opt.min_box_area and not vertical:
+                    corr_curr = compute_norm_corr_coeff(prev_detected_box, curr_predicted_box)
+                    total_corr += corr_curr
+                    #print(i, num_boxes_counted, previous_position_tlbr, predicted_curr_position_tlbr, eig_curr)
                     num_boxes_counted += 1
                     #print('index', i, previous_position_tlbr, predicted_curr_position_tlbr)
-            print('eig_', i ,": ", total_eig, 'num_boxes_counted ', num_boxes_counted)
+                
+            avg_corr = (total_corr / num_boxes_counted) if num_boxes_counted > 0 else 0
+            print('avg_corr', avg_corr, 'corr_'+str(i) ,total_corr,  'num_boxes counted', num_boxes_counted)
         else:
-            total_eig = 10000
+            avg_corr = 0
+        
 
         if use_cuda:
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
 
-        if total_eig >= eigen_threshold or num_consecutive_skips >=  detect_frame_interval:
+        if avg_corr < eigen_threshold or num_consecutive_skips >=  detect_frame_interval:
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
           prev_img = img0
@@ -193,6 +204,18 @@ def compute_eigen_values_consecutive(image1, image2):
     eig = np.sort(eig_1)
     return eig[0]
 
+def compute_norm_corr_coeff(img1, img2):
+    result = cv2.matchTemplate(img1,img2,cv2.TM_CCOEFF_NORMED)
+    return result[0][0]
+
+def get_crop_image_same_size(img1, boundingbox1, img2, boundingbox2):
+    img_crop1 = get_image_crop(img1, boundingbox1)
+    img_crop2 = get_image_crop(img2, boundingbox2)
+    img_crop2_resized = img_crop2.resize(img_crop1.size)
+    img_crop1 = np.array(img_crop1)
+    img_crop2_resized = np.array(img_crop2_resized)
+    return img_crop1, img_crop2_resized
+
 def compute_eigen_value_similarity(img1, img2):
     img1 = img1.reshape(-1)
     img2 = img2.reshape(-1)
@@ -207,7 +230,7 @@ def get_image_crop(img1, boundingbox1):
     img_crop1 = imgGray_1.crop(boundingbox1)
     return img_crop1
 
-def get_crop_image_same_size(img1, boundingbox1, img2, boundingbox2):
+def get_crop_image_same_size_flatten(img1, boundingbox1, img2, boundingbox2):
     img_crop1 = get_image_crop(img1, boundingbox1)
     img_crop2 = get_image_crop(img2, boundingbox2)
     img_crop2_resized = img_crop2.resize(img_crop1.size)
@@ -369,7 +392,8 @@ if __name__ == '__main__':
     main(opt,
          data_root=data_root,
          seqs=seqs,
-         exp_name='MOT15_test_samplevideo_'+seqs_str,
+         exp_name='MOT15_val_mot17_Feb23_mandskip_adap24',
+         #exp_name='MOT15_test_samplevideo_'+seqs_str,
          show_image=False,
          save_images=False,
          save_videos=True)
