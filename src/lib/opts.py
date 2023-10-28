@@ -119,12 +119,19 @@ class opts(object):
                              help='path to the input video')
     self.parser.add_argument('--output-format', type=str, default='video', help='video or text')
     self.parser.add_argument('--output-root', type=str, default='../demos', help='expected output root path')
-
+    self.parser.add_argument('--custom_video', default=False, help='is custom video provided')
+    self.parser.add_argument('--skip_frames', default=1, help='how frequently to skip frames during detection 0: no skiping 1: 1/2 skipped 2: 2/3 skipped 3: 3/4 skipped')
+    self.parser.add_argument('--similarity_threshold', default=0.75, help='threshold of similarity beyond which detection can be skipped')
+    self.parser.add_argument('--similarity_computation', type=str, default='ncc', help='which approach should similarity be computed with ? ncc/hog/no')
+    self.parser.add_argument('--detect_frame_interval', default=1, help='what is the max num of consecutive frames that can be skipped (to handle new objects entering the scene)')
+    self.parser.add_argument('--adaptive_freq_forced_detection', type=str, default='True', help='should we reduce the max num of consecutive frames that can be skipped on videos of lower frame rate (to handle new objects entering)')
     # mot
     self.parser.add_argument('--data_cfg', type=str,
                              default='../src/lib/cfg/data.json',
                              help='load data from cfg')
-    self.parser.add_argument('--data_dir', type=str, default='/home/zyf/dataset')
+    self.parser.add_argument('--data_dir', type=str, default='/content/drive/MyDrive/MOT/')
+    self.parser.add_argument('--seq_name', type=str, default='')
+    self.parser.add_argument('--data_path', type=str, default='/')
 
     # loss
     self.parser.add_argument('--mse_loss', action='store_true',
