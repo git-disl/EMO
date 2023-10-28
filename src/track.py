@@ -18,11 +18,10 @@ from tracking_utils import visualization as vis
 from tracking_utils.log import logger
 from tracking_utils.timer import Timer
 from tracking_utils.evaluation import Evaluator
-import sys
-sys.path.append('/mnt/batch/tasks/shared/LS_root/mounts/clusters/emo-experiment/code/Users/sganesh68/efficient-object-tracking/src/lib/datasets')
-import dataset.jde as datasets
+import datasets.dataset.jde as datasets
 
 from tracking_utils.utils import mkdir_if_missing
+from sklearn.metrics.pairwise import cosine_similarity
 from opts import opts
 
 
@@ -79,77 +78,90 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
     frame_id = 0
     prev_online_targets = []
     prev_img = None
-    eigen_threshold = float(opt.eigen_threshold)
+    similarity_threshold = float(opt.similarity_threshold)
     detect_frame_interval = int(opt.detect_frame_interval)
-    if frame_rate < 15:
-        detect_frame_interval = int(detect_frame_interval / 2)
+    similarity_computation = opt.similarity_computation
+    if opt.adaptive_freq_forced_detection=='True' and frame_rate < 15:
+        logger.info('reducing max num of consecutive frames that can be skipped since the video is less than 15 FPS')
+        detect_frame_interval = int(detect_frame_interval / 4)
+    else:
+        logger.info('retaining max num of consecutive frames that can be skipped')
     num_detect = 0
     num_skipped = 0
-    prev_area = 0
     num_consecutive_skips = 0
-    total_areas = []
-    largest_areas = []
-    #for path, img, img0 in dataloader:
+    timer_decision_to_skip = Timer()
+    timer_predict_next_pos = Timer()
+    timer_detect_and_update = Timer()
+    total_detections = 0
     for i, (path, img, img0) in enumerate(dataloader):
         #if i % 8 != 0:
             #continue   
         if frame_id % 20 == 0:
             logger.info('Processing frame {} ({:.2f} fps)'.format(frame_id, 1. / max(1e-5, timer.average_time)))
         
-
-
         # run tracking
         timer.tic()
 
         if i > 0 :
+            timer_decision_to_skip.tic()
             total_corr = 0
             num_boxes_counted = 0
+            total_detections += len(prev_online_targets)
+            image_prev = Image.fromarray(prev_img)
+            imgGray_prev = image_prev.convert('L')
+            image_0 = Image.fromarray(img0)
+            imgGray_0 = image_0.convert('L')
             for prev_track in prev_online_targets:
                 #filter targets like below
                 previous_position_tlbr = prev_track.tlbr
                 predicted_curr_position_tlbr = prev_track.predict_tlbr_without_updating_state()
-                prev_detected_box, curr_predicted_box = get_crop_image_same_size(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
-                #prev_detected_box, curr_predicted_box = get_crop_image_same_size_flatten(prev_img, previous_position_tlbr, img0, predicted_curr_position_tlbr)
+                prev_detected_box, curr_predicted_box = get_crop_image_same_size(imgGray_prev, previous_position_tlbr, imgGray_0, predicted_curr_position_tlbr)
                 
                 prev_tlwh = prev_track.tlwh
                 vertical = prev_tlwh[2] / prev_tlwh[3] > 1.6
                 curr_area = prev_tlwh[2] * prev_tlwh[3]
                 if curr_area > opt.min_box_area and not vertical:
-                    corr_curr = compute_norm_corr_coeff(prev_detected_box, curr_predicted_box)
+                    if similarity_computation == 'ncc':
+                        corr_curr = compute_norm_corr_coeff(prev_detected_box, curr_predicted_box)
+                    elif similarity_computation == 'hog':
+                        corr_curr = compute_hog_distance(prev_detected_box, curr_predicted_box)
+                    elif similarity_computation == 'no':
+                        corr_curr = 1
+                    
                     total_corr += corr_curr
-                    #print(i, num_boxes_counted, previous_position_tlbr, predicted_curr_position_tlbr, eig_curr)
                     num_boxes_counted += 1
-                    #print('index', i, previous_position_tlbr, predicted_curr_position_tlbr)
                 
             avg_corr = (total_corr / num_boxes_counted) if num_boxes_counted > 0 else 0
-            print('avg_corr', avg_corr, 'corr_'+str(i) ,total_corr,  'num_boxes counted', num_boxes_counted)
+            timer_decision_to_skip.toc()
+            #print('avg_corr', avg_corr, 'corr_'+str(i) ,total_corr,  'num_boxes counted', num_boxes_counted)
         else:
             avg_corr = 0
         
-
         if use_cuda:
             blob = torch.from_numpy(img).cuda().unsqueeze(0)
         else:
             blob = torch.from_numpy(img).unsqueeze(0)
 
-        if avg_corr < eigen_threshold or num_consecutive_skips >=  detect_frame_interval:
+        if avg_corr < similarity_threshold or num_consecutive_skips >=  detect_frame_interval:
+          timer_detect_and_update.tic()
           online_targets = tracker.update(blob, img0)
           prev_online_targets = online_targets
-          prev_img = img0
           num_detect+=1
           num_consecutive_skips = 0
-          print('detect at ', i, ' prev_area: ', prev_area)
+          timer_detect_and_update.toc()
+          logger.debug('detect at '+ str(i)+ ' avg_corr: '+ str(avg_corr))
         else:
-          #eig = compute_eigen_values_consecutive(prev_img, img0)
+          timer_predict_next_pos.tic()
           STrack.multi_predict(prev_online_targets)
           online_targets = prev_online_targets
+          timer_predict_next_pos.toc()
           num_consecutive_skips += 1
           num_skipped+=1
+          logger.debug('skip at '+ str(i)+ ' avg_corr: '+ str(avg_corr))
+        
         online_tlwhs = []
         online_ids = []
-        #online_scores = []
-        tot_area = 0
-        max_area = -1
+        prev_img = img0
         for t in online_targets:
             tlwh = t.tlwh
             tid = t.track_id
@@ -159,21 +171,10 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
                 online_tlwhs.append(tlwh)
                 online_ids.append(tid)
                 curr_area = tlwh[2] * tlwh[3]
-                tot_area += curr_area
-                #online_scores.append(t.score)
-                if curr_area > max_area:
-                    max_area = curr_area
-
-        prev_area = tot_area
-        largest_areas.append(max_area)
-        total_areas.append(tot_area)
         timer.toc()
-        #print('largest_areas:', largest_areas)
-        #print('total_areas:', total_areas)
         
         # save results
         results.append((frame_id + 1, online_tlwhs, online_ids))
-        #results.append((frame_id + 1, online_tlwhs, online_ids, online_scores))
         if show_image or save_dir is not None:
             online_im = vis.plot_tracking(img0, online_tlwhs, online_ids, frame_id=frame_id,
                                           fps=1. / timer.average_time)
@@ -183,9 +184,12 @@ def eval_seq(opt, dataloader, data_type, result_filename, save_dir=None, show_im
             cv2.imwrite(os.path.join(save_dir, '{:05d}.jpg'.format(frame_id)), online_im)
         frame_id += 1
     # save results
-    print('num_detect:', num_detect, "num_skipped:", num_skipped)
+    logger.info('num_detect:', num_detect, "num_skipped:", num_skipped)
+    logger.info('timer_decision_to_skip', timer_decision_to_skip.average_time, timer_decision_to_skip.calls)
+    logger.info('timer_predict_next_pos', timer_predict_next_pos.average_time, timer_predict_next_pos.calls)
+    logger.info('timer_detect_and_update', timer_detect_and_update.average_time, timer_detect_and_update.calls)
     write_results(result_filename, results, data_type)
-    #write_results_score(result_filename, results, data_type)
+    
     return frame_id, timer.average_time, timer.calls
 
 def get_image_as_array(img):
@@ -208,13 +212,14 @@ def compute_norm_corr_coeff(img1, img2):
     result = cv2.matchTemplate(img1,img2,cv2.TM_CCOEFF_NORMED)
     return result[0][0]
 
-def get_crop_image_same_size(img1, boundingbox1, img2, boundingbox2):
+def get_crop_image_same_size(img1, boundingbox1, img2, boundingbox2, crop_size=(128, 128)):
     img_crop1 = get_image_crop(img1, boundingbox1)
     img_crop2 = get_image_crop(img2, boundingbox2)
-    img_crop2_resized = img_crop2.resize(img_crop1.size)
-    img_crop1 = np.array(img_crop1)
+    img_crop1_resized = img_crop1.resize(crop_size)
+    img_crop2_resized = img_crop2.resize(crop_size)
+    img_crop1_resized = np.array(img_crop1_resized)
     img_crop2_resized = np.array(img_crop2_resized)
-    return img_crop1, img_crop2_resized
+    return img_crop1_resized, img_crop2_resized
 
 def compute_eigen_value_similarity(img1, img2):
     img1 = img1.reshape(-1)
@@ -224,10 +229,26 @@ def compute_eigen_value_similarity(img1, img2):
     eig = np.sort(eig_1)
     return eig[0]
 
+def compute_hog_distance(prev_detected_box, curr_predicted_box):
+    prev_box_features = compute_hog(prev_detected_box)
+    curr_box_features = compute_hog(curr_predicted_box)
+    similarity = cosine_similarity(prev_box_features.T, curr_box_features.T)[0][0]
+    return similarity
+
+
+def compute_hog(detected_crop_gray):
+    hog = cv2.HOGDescriptor()
+    hog_feature = hog.compute(detected_crop_gray)
+    hog_feature = hog_feature.reshape(-1, 1)
+
+    # Normalize feature vectors
+    norm = np.linalg.norm(hog_feature)
+    if norm != 0:
+        hog_feature /= norm
+    return hog_feature
+
 def get_image_crop(img1, boundingbox1):
-    image_1 = Image.fromarray(img1)
-    imgGray_1 = image_1.convert('L')
-    img_crop1 = imgGray_1.crop(boundingbox1)
+    img_crop1 = img1.crop(boundingbox1)
     return img_crop1
 
 def get_crop_image_same_size_flatten(img1, boundingbox1, img2, boundingbox2):
@@ -388,12 +409,12 @@ if __name__ == '__main__':
         seqs_str = opt.seq_name
         data_root = os.path.join(opt.data_dir, opt.data_path)
     seqs = [seq.strip() for seq in seqs_str.split()]
+    #logger.info("data_root "+ data_root)
 
     main(opt,
          data_root=data_root,
          seqs=seqs,
-         exp_name='MOT15_val_mot17_Feb23_mandskip_adap24',
-         #exp_name='MOT15_test_samplevideo_'+seqs_str,
+         exp_name='MOT_val_exptname',
          show_image=False,
          save_images=False,
          save_videos=True)
