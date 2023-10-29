@@ -1,7 +1,9 @@
+cython==0.29.28
+torchvision==0.8.0
 yacs
 opencv-python
 PyYAML
-cython-bbox
+cython-bbox==0.1.3
 scipy
 progress
 motmetrics
@@ -11,3 +13,5 @@ openpyxl
 Pillow
 tensorboardX
 fvcore
+scikit-learn
+ipykernel

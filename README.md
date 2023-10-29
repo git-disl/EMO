@@ -64,7 +64,33 @@ Combining both the previous approaches to avoid accumulation of errors by skippi
 Qualitative results for Context-aware skipping (using Kalman filter based estimation, Normalized cross correlation and Histogram of Oriented Gradients features based similarity) to be updated soon.
 
 ## Usage Instructions
-Code Structure, Environment setup and Execution instructions will be updated shortly.
+
+### Environment setup:
+
+```
+conda create --name <env_name> python=3.7
+conda activate <env_name>
+
+git clone https://github.com/git-disl/EMO.git
+pip install -r requirements.txt
+
+git clone -b pytorch_1.7 https://github.com/ifzhang/DCNv2.git
+cd ../DCNv2
+sh make.sh
+```
+
+A trained model from https://github.com/ifzhang/FairMOT#pretrained-models-and-baseline-model can be used for the inference below
+
+### Script to run evaluation
+
+#### Periodic skipping + estimation
+```
+python src/track.py mot --load_model <path_to_FairMOT_trained_model> --conf_thres 0.6 <--val_mot15 VAL_MOT15 / --val_mot17 VAL_MOT17> --data_path <path_to_MOT15/MOT17_dataset> --detect_frame_interval 4 --similarity_computation 'no' --adaptive_freq_forced_detection 'False'
+```
+#### Context-aware skipping (NCC/HOG + estimation)
+```
+python src/track.py mot --load_model <path_to_FairMOT_trained_model> --conf_thres 0.6 <--val_mot15 VAL_MOT15 / --val_mot17 VAL_MOT17> --data_path <path_to_MOT15/MOT17_dataset> --similarity_threshold <0-1, recommended range 0.7-0.9> --detect_frame_interval 4 --similarity_computation <'hog'/'ncc'> --adaptive_freq_forced_detection 'False'
+```
 
 ## Citation
 The arxiv version of the paper can be found [here](https://arxiv.org/abs/2309.02666)
