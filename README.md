@@ -72,10 +72,11 @@ conda create --name <env_name> python=3.7
 conda activate <env_name>
 
 git clone https://github.com/git-disl/EMO.git
+cd EMO
 pip install -r requirements.txt
 
 git clone -b pytorch_1.7 https://github.com/ifzhang/DCNv2.git
-cd ../DCNv2
+cd DCNv2
 sh make.sh
 ```
 
@@ -83,6 +84,11 @@ A trained model from https://github.com/ifzhang/FairMOT#pretrained-models-and-ba
 
 ### Script to run evaluation
 
+#### Periodic skipping + reuse previous bounding box
+```
+python src/track_periodic.py mot --load_model <path_to_FairMOT_trained_model> --conf_thres 0.6 <--val_mot15 VAL_MOT15 / --val_mot17 VAL_MOT17> --data_path <path_to_MOT15/MOT17_dataset> --detect_frame_interval x
+```
+detect_frame_interval of x means x consecutive frames are skipped in between successive detections. i.e, detections are skipped on x of out every (x+1) frames.
 #### Periodic skipping + estimation
 ```
 python src/track.py mot --load_model <path_to_FairMOT_trained_model> --conf_thres 0.6 <--val_mot15 VAL_MOT15 / --val_mot17 VAL_MOT17> --data_path <path_to_MOT15/MOT17_dataset> --detect_frame_interval 4 --similarity_computation 'no' --adaptive_freq_forced_detection 'False'
@@ -91,6 +97,10 @@ python src/track.py mot --load_model <path_to_FairMOT_trained_model> --conf_thre
 ```
 python src/track.py mot --load_model <path_to_FairMOT_trained_model> --conf_thres 0.6 <--val_mot15 VAL_MOT15 / --val_mot17 VAL_MOT17> --data_path <path_to_MOT15/MOT17_dataset> --similarity_threshold <0-1, recommended range 0.7-0.9> --detect_frame_interval 4 --similarity_computation <'hog'/'ncc'> --adaptive_freq_forced_detection 'False'
 ```
+
+
+To run the evaluation on a single video, --custom_video and --seq_name arguments can be used on the track & track_periodic scripts
+To compute HOTA metrics, src/metrics/run_mot_challenge.py can be used after updating src/metrics/mot_challenge_2d_box.py with the correct parameters
 
 ## Citation
 The arxiv version of the paper can be found [here](https://arxiv.org/abs/2309.02666)
@@ -104,7 +114,7 @@ The arxiv version of the paper can be found [here](https://arxiv.org/abs/2309.02
 ```
 
 ## Acknowledgement
-This code in this repository is developed on using the following repositories
+The inference time optimizations in this repository are developed on top of the following repositories
 
 [FairMOT](https://github.com/ifzhang/FairMOT) - [1] Zhang, Y., Wang, C., Wang, X., Zeng, W., & Liu, W. (2021). Fairmot: On the fairness of detection and re-identification in multiple object tracking. International Journal of Computer Vision, 129(11), 3069-3087`
 
