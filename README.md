@@ -1,5 +1,7 @@
 # Efficient Multi-Object Tracking for Edge devices
 
+Note: The arxiv version of the paper can be found [here](https://arxiv.org/abs/2309.02666)
+
 Object tracking is a representative computer vision task to
 detect and track objects throughout the video. Object 
 tracking systems are widely used in important applications like autonomous driving, surveillance from 
